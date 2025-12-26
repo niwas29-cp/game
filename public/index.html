@@ -140,7 +140,7 @@
                 ← Back to Menu
               </button>
               <h1 className="text-5xl font-bold text-center mb-12 text-orange-800">Brain Games</h1>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 <button
                   onClick={() => setCurrentGame('maze')}
                   className="bg-white p-10 rounded-3xl shadow-xl hover:scale-105 transform transition"
@@ -154,6 +154,13 @@
                 >
                   <h3 className="text-3xl font-bold text-orange-600 mb-2">Number Games</h3>
                   <p className="text-gray-600 text-xl">Learn numbers!</p>
+                </button>
+                <button
+                  onClick={() => setCurrentGame('match')}
+                  className="bg-white p-10 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                >
+                  <h3 className="text-3xl font-bold text-orange-600 mb-2">Match & Play</h3>
+                  <p className="text-gray-600 text-xl">Match position words!</p>
                 </button>
               </div>
             </div>
@@ -1204,6 +1211,461 @@
             }
           };
 
+          const MatchAndPlay = () => {
+            const [currentLevel, setCurrentLevel] = useState(0);
+            const [matches, setMatches] = useState([]);
+            const [drawing, setDrawing] = useState(false);
+            const [currentLine, setCurrentLine] = useState(null);
+            const [startPoint, setStartPoint] = useState(null);
+            const containerRef = useRef(null);
+            const [dotPositions, setDotPositions] = useState({});
+
+            const levels = [
+              {
+                items: [
+                  { wordId: 'above', word: 'Above', imageId: 'above' },
+                  { wordId: 'under', word: 'Under', imageId: 'under' }
+                ]
+              },
+              {
+                items: [
+                  { wordId: 'infrontof', word: 'In Front', imageId: 'infrontof' },
+                  { wordId: 'behind', word: 'Behind', imageId: 'behind' }
+                ]
+              },
+              {
+                items: [
+                  { wordId: 'far', word: 'Far', imageId: 'far' },
+                  { wordId: 'near', word: 'Near', imageId: 'near' }
+                ]
+              },
+              {
+                items: [
+                  { wordId: 'inside', word: 'Inside', imageId: 'inside' },
+                  { wordId: 'outside', word: 'Outside', imageId: 'outside' }
+                ]
+              },
+              {
+                items: [
+                  { wordId: 'between', word: 'Between', imageId: 'between' },
+                  { wordId: 'beside', word: 'Beside', imageId: 'beside' }
+                ]
+              }
+            ];
+
+            const level = levels[currentLevel];
+            
+            const [shuffledImages, setShuffledImages] = useState([]);
+
+            useEffect(() => {
+              const shuffled = levels.map(lvl => {
+                const images = [...lvl.items];
+                for (let i = images.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [images[i], images[j]] = [images[j], images[i]];
+                }
+                return images;
+              });
+              setShuffledImages(shuffled);
+            }, []);
+
+            useEffect(() => {
+              if (shuffledImages.length > 0) {
+                setTimeout(updateDotPositions, 100);
+              }
+              window.addEventListener('resize', updateDotPositions);
+              return () => window.removeEventListener('resize', updateDotPositions);
+            }, [currentLevel, shuffledImages]);
+
+            const updateDotPositions = () => {
+              const container = containerRef.current;
+              if (!container || shuffledImages.length === 0) return;
+
+              const positions = {};
+              
+              level.items.forEach((item, index) => {
+                const wordDot = document.getElementById(`word-dot-${index}`);
+                if (wordDot) {
+                  const rect = wordDot.getBoundingClientRect();
+                  const containerRect = container.getBoundingClientRect();
+                  positions[`word-${index}`] = {
+                    x: rect.left + rect.width / 2 - containerRect.left,
+                    y: rect.top + rect.height / 2 - containerRect.top
+                  };
+                }
+              });
+
+              if (shuffledImages[currentLevel]) {
+                shuffledImages[currentLevel].forEach((item, index) => {
+                  const imageDot = document.getElementById(`image-dot-${index}`);
+                  if (imageDot) {
+                    const rect = imageDot.getBoundingClientRect();
+                    const containerRect = container.getBoundingClientRect();
+                    positions[`image-${index}`] = {
+                      x: rect.left + rect.width / 2 - containerRect.left,
+                      y: rect.top + rect.height / 2 - containerRect.top
+                    };
+                  }
+                });
+              }
+
+              setDotPositions(positions);
+            };
+
+            const handleStart = (clientX, clientY, type, index) => {
+              const pos = dotPositions[`${type}-${index}`];
+              if (pos) {
+                setDrawing(true);
+                setStartPoint({ type, index, ...pos });
+                setCurrentLine({ start: pos, end: pos });
+              }
+            };
+
+            const handleMove = (clientX, clientY) => {
+              if (!drawing || !startPoint) return;
+              
+              const container = containerRef.current;
+              const rect = container.getBoundingClientRect();
+              const x = clientX - rect.left;
+              const y = clientY - rect.top;
+              
+              setCurrentLine({ start: startPoint, end: { x, y } });
+            };
+
+            const handleEnd = (type, index) => {
+              if (!drawing || !startPoint) return;
+              
+              if ((startPoint.type === 'word' && type === 'image') || 
+                  (startPoint.type === 'image' && type === 'word')) {
+                
+                const wordIndex = startPoint.type === 'word' ? startPoint.index : index;
+                const imageIndex = startPoint.type === 'image' ? startPoint.index : index;
+                
+                const alreadyMatched = matches.some(m => m.wordIndex === wordIndex || m.imageIndex === imageIndex);
+                
+                if (!alreadyMatched && shuffledImages[currentLevel]) {
+                  const wordId = level.items[wordIndex].wordId;
+                  const imageId = shuffledImages[currentLevel][imageIndex].imageId;
+                  const isCorrect = wordId === imageId;
+                  
+                  setMatches([...matches, {
+                    wordIndex,
+                    imageIndex,
+                    correct: isCorrect
+                  }]);
+                }
+              }
+              
+              setDrawing(false);
+              setCurrentLine(null);
+              setStartPoint(null);
+            };
+
+            const isMatched = (type, index) => {
+              return matches.some(m => m[`${type}Index`] === index);
+            };
+
+            const getMatchColor = (type, index) => {
+              const match = matches.find(m => m[`${type}Index`] === index);
+              return match ? (match.correct ? '#22c55e' : '#ef4444') : null;
+            };
+
+            const nextLevel = () => {
+              if (currentLevel < levels.length - 1) {
+                setCurrentLevel(currentLevel + 1);
+              } else {
+                setCurrentLevel(0);
+              }
+              setMatches([]);
+              setDrawing(false);
+              setCurrentLine(null);
+              setStartPoint(null);
+            };
+
+            const reset = () => {
+              setMatches([]);
+              setDrawing(false);
+              setCurrentLine(null);
+              setStartPoint(null);
+            };
+
+            const allCorrect = matches.length === level.items.length && matches.every(m => m.correct);
+
+            const renderImage = (id) => {
+              if (id === 'above') {
+                return (
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                    <circle cx="100" cy="50" r="25" fill="#ef4444" stroke="#000" strokeWidth="2"/>
+                    <rect x="50" y="120" width="100" height="60" fill="#ffa500" stroke="#000" strokeWidth="2"/>
+                    <rect x="60" y="100" width="80" height="20" fill="#ff8c00" stroke="#000" strokeWidth="2"/>
+                  </svg>
+                );
+              } else if (id === 'under') {
+                return (
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                    <rect x="50" y="40" width="100" height="60" fill="#ffa500" stroke="#000" strokeWidth="2"/>
+                    <rect x="60" y="100" width="80" height="8" fill="#ff8c00" stroke="#000" strokeWidth="1"/>
+                    <circle cx="100" cy="155" r="25" fill="#ef4444" stroke="#000" strokeWidth="2"/>
+                  </svg>
+                );
+              } else if (id === 'beside') {
+                return (
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                    <rect x="50" y="70" width="50" height="60" fill="#ffa500" stroke="#000" strokeWidth="2"/>
+                    <circle cx="135" cy="100" r="25" fill="#ef4444" stroke="#000" strokeWidth="2"/>
+                  </svg>
+                );
+              } else if (id === 'behind') {
+                return (
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                    <path d="M 40 60 L 60 50 L 140 50 L 160 60 Z" fill="#d2a679" stroke="#000" strokeWidth="2"/>
+                    <rect x="40" y="60" width="120" height="90" fill="#d2a679" stroke="#000" strokeWidth="2"/>
+                    <rect x="60" y="70" width="80" height="70" fill="#c19a6b" stroke="#000" strokeWidth="1"/>
+                    <ellipse cx="165" cy="100" rx="20" ry="25" fill="#5a5a5a" stroke="#000" strokeWidth="2"/>
+                    <circle cx="172" cy="95" r="3" fill="#fff" stroke="#000" strokeWidth="1"/>
+                    <circle cx="173" cy="96" r="1.5" fill="#000"/>
+                    <circle cx="165" cy="105" r="2" fill="#ff69b4" stroke="#000" strokeWidth="0.5"/>
+                    <line x1="165" y1="85" x2="155" y2="80" stroke="#000" strokeWidth="1.5"/>
+                    <line x1="165" y1="88" x2="155" y2="87" stroke="#000" strokeWidth="1.5"/>
+                    <line x1="165" y1="85" x2="175" y2="80" stroke="#000" strokeWidth="1.5"/>
+                    <line x1="165" y1="88" x2="175" y2="87" stroke="#000" strokeWidth="1.5"/>
+                  </svg>
+                );
+              } else if (id === 'infrontof') {
+                return (
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                    <circle cx="75" cy="100" r="25" fill="#ef4444" stroke="#000" strokeWidth="2"/>
+                    <rect x="110" y="70" width="50" height="60" fill="#ffa500" stroke="#000" strokeWidth="2"/>
+                  </svg>
+                );
+              } else if (id === 'between') {
+                return (
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                    <rect x="30" y="70" width="40" height="60" fill="#ffa500" stroke="#000" strokeWidth="2"/>
+                    <circle cx="100" cy="100" r="25" fill="#ef4444" stroke="#000" strokeWidth="2"/>
+                    <rect x="130" y="70" width="40" height="60" fill="#ffa500" stroke="#000" strokeWidth="2"/>
+                  </svg>
+                );
+              } else if (id === 'inside') {
+                return (
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                    <rect x="50" y="50" width="100" height="100" fill="#e5e5e5" stroke="#000" strokeWidth="3"/>
+                    <circle cx="100" cy="100" r="25" fill="#ef4444" stroke="#000" strokeWidth="2"/>
+                  </svg>
+                );
+              } else if (id === 'outside') {
+                return (
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                    <rect x="90" y="90" width="70" height="70" fill="#e5e5e5" stroke="#000" strokeWidth="3"/>
+                    <circle cx="40" cy="40" r="20" fill="#ef4444" stroke="#000" strokeWidth="2"/>
+                  </svg>
+                );
+              } else if (id === 'near') {
+                return (
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                    <rect x="70" y="70" width="50" height="60" fill="#ffa500" stroke="#000" strokeWidth="2"/>
+                    <circle cx="140" cy="100" r="22" fill="#ef4444" stroke="#000" strokeWidth="2"/>
+                  </svg>
+                );
+              } else if (id === 'far') {
+                return (
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                    <rect x="20" y="70" width="45" height="60" fill="#ffa500" stroke="#000" strokeWidth="2"/>
+                    <circle cx="165" cy="100" r="22" fill="#ef4444" stroke="#000" strokeWidth="2"/>
+                  </svg>
+                );
+              }
+              return <div></div>;
+            };
+
+            if (shuffledImages.length === 0) {
+              return (
+                <div className="min-h-screen bg-gradient-to-br from-cyan-100 to-blue-200 flex items-center justify-center">
+                  <p className="text-2xl">Loading...</p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-cyan-100 to-blue-200 p-4 md:p-8">
+                <div className="max-w-7xl mx-auto">
+                  <button onClick={() => setCurrentGame(null)} className="mb-4 flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-lg text-sm md:text-base">
+                    ← Back
+                  </button>
+                  <h1 className="text-4xl md:text-5xl font-bold text-center mb-4 text-blue-800">
+                    Match Position Words
+                  </h1>
+                  <p className="text-xl md:text-2xl text-center mb-8 text-blue-700">
+                    Level {currentLevel + 1} of {levels.length}
+                  </p>
+
+                  <div 
+                    ref={containerRef}
+                    className="relative bg-white rounded-3xl shadow-2xl p-8 md:p-12"
+                    onMouseMove={(e) => handleMove(e.clientX, e.clientY)}
+                    onMouseUp={() => {
+                      if (drawing) {
+                        setDrawing(false);
+                        setCurrentLine(null);
+                        setStartPoint(null);
+                      }
+                    }}
+                    onTouchMove={(e) => {
+                      e.preventDefault();
+                      const touch = e.touches[0];
+                      handleMove(touch.clientX, touch.clientY);
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      if (drawing) {
+                        const touch = e.changedTouches[0];
+                        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                        if (element && element.dataset.dotType && element.dataset.dotIndex !== undefined) {
+                          handleEnd(element.dataset.dotType, parseInt(element.dataset.dotIndex));
+                        } else {
+                          setDrawing(false);
+                          setCurrentLine(null);
+                          setStartPoint(null);
+                        }
+                      }
+                    }}
+                  >
+                    <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%' }}>
+                      {matches.map((match, i) => {
+                        const start = dotPositions[`word-${match.wordIndex}`];
+                        const end = dotPositions[`image-${match.imageIndex}`];
+                        if (!start || !end) return null;
+                        
+                        return (
+                          <line
+                            key={i}
+                            x1={start.x}
+                            y1={start.y}
+                            x2={end.x}
+                            y2={end.y}
+                            stroke={match.correct ? '#22c55e' : '#ef4444'}
+                            strokeWidth="6"
+                            strokeLinecap="round"
+                          />
+                        );
+                      })}
+                      
+                      {currentLine && (
+                        <line
+                          x1={currentLine.start.x}
+                          y1={currentLine.start.y}
+                          x2={currentLine.end.x}
+                          y2={currentLine.end.y}
+                          stroke="#3b82f6"
+                          strokeWidth="6"
+                          strokeLinecap="round"
+                          strokeDasharray="10,5"
+                        />
+                      )}
+                    </svg>
+
+                    <div className="grid grid-cols-2 gap-24 md:gap-32">
+                      <div className="space-y-12">
+                        {shuffledImages[currentLevel] && shuffledImages[currentLevel].map((item, index) => (
+                          <div 
+                            key={index}
+                            className="flex items-center gap-6"
+                          >
+                            <div className="bg-gray-50 border-4 border-gray-300 rounded-2xl p-6 w-40 h-40 md:w-48 md:h-48 flex items-center justify-center shadow-lg">
+                              {renderImage(item.imageId)}
+                            </div>
+                            <div
+                              id={`image-dot-${index}`}
+                              data-dot-type="image"
+                              data-dot-index={index}
+                              onMouseDown={(e) => handleStart(e.clientX, e.clientY, 'image', index)}
+                              onMouseUp={(e) => handleEnd('image', index)}
+                              onTouchStart={(e) => {
+                                e.preventDefault();
+                                const touch = e.touches[0];
+                                handleStart(touch.clientX, touch.clientY, 'image', index);
+                              }}
+                              className={`w-12 h-12 rounded-full border-4 cursor-pointer transition-all flex-shrink-0 ${
+                                isMatched('image', index) ? 'scale-110' : 'hover:scale-125'
+                              }`}
+                              style={{
+                                backgroundColor: getMatchColor('image', index) || '#9ca3af',
+                                borderColor: getMatchColor('image', index) || '#6b7280',
+                                touchAction: 'none'
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="space-y-40">
+                        {level.items.map((item, index) => (
+                          <div 
+                            key={index}
+                            className="flex items-center gap-6"
+                          >
+                            <div
+                              id={`word-dot-${index}`}
+                              data-dot-type="word"
+                              data-dot-index={index}
+                              onMouseDown={(e) => handleStart(e.clientX, e.clientY, 'word', index)}
+                              onMouseUp={(e) => handleEnd('word', index)}
+                              onTouchStart={(e) => {
+                                e.preventDefault();
+                                const touch = e.touches[0];
+                                handleStart(touch.clientX, touch.clientY, 'word', index);
+                              }}
+                              className={`w-12 h-12 rounded-full border-4 cursor-pointer transition-all flex-shrink-0 ${
+                                isMatched('word', index) ? 'scale-110' : 'hover:scale-125'
+                              }`}
+                              style={{
+                                backgroundColor: getMatchColor('word', index) || '#9ca3af',
+                                borderColor: getMatchColor('word', index) || '#6b7280',
+                                touchAction: 'none'
+                              }}
+                            />
+                            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-8 py-6 rounded-2xl shadow-lg text-3xl md:text-4xl font-bold min-w-[180px] text-center">
+                              {item.word}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {allCorrect && (
+                      <div className="mt-12 text-center">
+                        <p className="text-5xl font-bold text-green-600 mb-6">
+                          🎉 Perfect! All Matched! 🎉
+                        </p>
+                        <button
+                          onClick={nextLevel}
+                          className="bg-green-500 text-white px-12 py-4 rounded-full text-2xl font-bold hover:bg-green-600 transform hover:scale-105 transition"
+                        >
+                          {currentLevel < levels.length - 1 ? 'Next Level →' : 'Play Again!'}
+                        </button>
+                      </div>
+                    )}
+
+                    {matches.length > 0 && !allCorrect && (
+                      <div className="mt-12 text-center">
+                        <button
+                          onClick={reset}
+                          className="bg-orange-500 text-white px-8 py-3 rounded-full text-xl font-bold hover:bg-orange-600 transform hover:scale-105 transition"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-8 text-center text-blue-700 text-xl">
+                    <p>💡 Drag from a dot to another dot to match!</p>
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
           const StoriesGame = () => {
             const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
             const story = stories[currentStoryIndex];
@@ -1405,6 +1867,9 @@
             }
             if (currentGame === 'numbers') {
               return <NumberGamesHub />;
+            }
+            if (currentGame === 'match') {
+              return <MatchAndPlay />;
             }
             return <BrainGamesMenu />;
           }
