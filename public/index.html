@@ -159,6 +159,103 @@
             </div>
           );
 
+          const ReadingMenu = () => (
+            <div className="min-h-screen bg-gradient-to-br from-green-100 to-teal-200 p-8">
+              <button
+                onClick={() => setCurrentSection('menu')}
+                className="mb-6 flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl"
+              >
+                ← Back to Menu
+              </button>
+              <h1 className="text-5xl font-bold text-center mb-12 text-green-800">Reading Games</h1>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <button
+                  onClick={() => setCurrentGame('stories')}
+                  className="bg-white p-10 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                >
+                  <h3 className="text-3xl font-bold text-green-600 mb-2">Short Stories</h3>
+                  <p className="text-gray-600 text-xl">Read fun stories!</p>
+                </button>
+                <button
+                  onClick={() => setCurrentGame('sightwords')}
+                  className="bg-white p-10 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                >
+                  <h3 className="text-3xl font-bold text-green-600 mb-2">Sight Words</h3>
+                  <p className="text-gray-600 text-xl">Flash cards!</p>
+                </button>
+              </div>
+            </div>
+          );
+
+          const ColoringMenu = () => {
+            const [selectedPage, setSelectedPage] = useState(null);
+            const [coloredAreas, setColoredAreas] = useState({});
+
+            if (selectedPage) {
+              const page = coloringPages.find(p => p.id === selectedPage);
+              
+              return (
+                <div className="min-h-screen bg-gradient-to-br from-pink-100 to-purple-200 p-8">
+                  <button
+                    onClick={() => { setSelectedPage(null); setColoredAreas({}); }}
+                    className="mb-6 flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-lg"
+                  >
+                    ← Back
+                  </button>
+                  <h2 className="text-4xl font-bold text-center mb-8 text-purple-800">{page.name}</h2>
+                  
+                  <div className="max-w-2xl mx-auto bg-white p-8 rounded-3xl shadow-2xl">
+                    <div 
+                      className="mb-8"
+                      dangerouslySetInnerHTML={{ __html: page.svg }}
+                      onClick={(e) => {
+                        if (e.target.tagName === 'ellipse' || e.target.tagName === 'circle' || e.target.tagName === 'path' || e.target.tagName === 'rect') {
+                          e.target.setAttribute('fill', selectedColor);
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    
+                    <div className="flex flex-wrap gap-4 justify-center">
+                      {colors.map(color => (
+                        <button
+                          key={color}
+                          onClick={() => setSelectedColor(color)}
+                          className={`w-16 h-16 rounded-full border-4 ${selectedColor === color ? 'border-black scale-110' : 'border-gray-300'} transition-all`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-pink-100 to-purple-200 p-8">
+                <button
+                  onClick={() => setCurrentSection('menu')}
+                  className="mb-6 flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-lg"
+                >
+                  ← Back to Menu
+                </button>
+                <h1 className="text-5xl font-bold text-center mb-12 text-purple-800">Coloring Pages</h1>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                  {coloringPages.map(page => (
+                    <button
+                      key={page.id}
+                      onClick={() => setSelectedPage(page.id)}
+                      className="bg-white p-8 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                    >
+                      <div dangerouslySetInnerHTML={{ __html: page.svg }} />
+                      <h3 className="text-2xl font-bold text-purple-600 mt-4">{page.name}</h3>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          };
+
           const SimpleMaze = () => {
             const [currentMazeLevel, setCurrentMazeLevel] = useState(0);
             const [isDrawing, setIsDrawing] = useState(false);
@@ -167,86 +264,198 @@
             const canvasRef = useRef(null);
             const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
+            // Maze data: 0 = path, 1 = wall
             const mazes = [
               {
                 level: 1,
                 title: "Bee to Flower",
                 character: '🐝',
                 target: '🌸',
-                solution: [[0,0], [1,0], [2,0], [2,1], [2,2], [3,2], [3,3]],
-                paths: [
-                  {from: [0,0], to: [1,0]}, {from: [1,0], to: [2,0]},
-                  {from: [2,0], to: [2,1]}, {from: [2,1], to: [2,2]},
-                  {from: [2,2], to: [3,2]}, {from: [3,2], to: [3,3]},
-                  {from: [0,0], to: [0,1]}, {from: [0,1], to: [0,2]},
-                  {from: [1,0], to: [1,1]}
+                startPos: { x: 0.5, y: 0.5 },
+                endPos: { x: 4.5, y: 4.5 },
+                targetInWall: false,
+                grid: [
+                  [0, 0, 1, 1, 1],
+                  [1, 0, 0, 0, 1],
+                  [1, 1, 1, 0, 1],
+                  [1, 0, 0, 0, 1],
+                  [1, 1, 1, 0, 0],
                 ],
-                size: 4
+                size: 5
               },
               {
                 level: 2,
                 title: "Fish to Coral",
                 character: '🐠',
                 target: '🪸',
-                solution: [[0,0], [1,0], [1,1], [1,2], [2,2], [3,2], [3,3], [4,3], [4,4]],
-                paths: [
-                  {from: [0,0], to: [1,0]}, {from: [1,0], to: [1,1]},
-                  {from: [1,1], to: [1,2]}, {from: [1,2], to: [2,2]},
-                  {from: [2,2], to: [3,2]}, {from: [3,2], to: [3,3]},
-                  {from: [3,3], to: [4,3]}, {from: [4,3], to: [4,4]},
-                  {from: [0,0], to: [0,1]}, {from: [2,2], to: [2,3]},
-                  {from: [1,2], to: [0,2]}
+                startPos: { x: 0.5, y: 1.5 },
+                endPos: { x: 5.5, y: 5.5 },
+                targetInWall: false,
+                grid: [
+                  [1, 1, 1, 1, 1, 1],
+                  [0, 0, 0, 0, 1, 1],
+                  [1, 1, 1, 0, 0, 1],
+                  [1, 0, 0, 0, 1, 1],
+                  [1, 0, 1, 1, 1, 1],
+                  [1, 0, 0, 0, 0, 0],
                 ],
-                size: 5
+                size: 6
               },
               {
                 level: 3,
                 title: "Bunny to Carrot",
                 character: '🐰',
                 target: '🥕',
-                solution: [[0,0], [0,1], [0,2], [1,2], [2,2], [3,2], [3,3], [3,4], [4,4]],
-                paths: [
-                  {from: [0,0], to: [0,1]}, {from: [0,1], to: [0,2]},
-                  {from: [0,2], to: [1,2]}, {from: [1,2], to: [2,2]},
-                  {from: [2,2], to: [3,2]}, {from: [3,2], to: [3,3]},
-                  {from: [3,3], to: [3,4]}, {from: [3,4], to: [4,4]},
-                  {from: [0,0], to: [1,0]}, {from: [1,0], to: [2,0]},
-                  {from: [1,2], to: [1,3]}, {from: [2,2], to: [2,1]}
+                startPos: { x: 0.5, y: 0.5 },
+                endPos: { x: 5.5, y: 5.5 },
+                targetInWall: false,
+                grid: [
+                  [0, 0, 0, 1, 1, 1],
+                  [1, 1, 0, 0, 0, 1],
+                  [1, 1, 1, 1, 0, 1],
+                  [1, 0, 0, 0, 0, 1],
+                  [1, 0, 1, 1, 1, 1],
+                  [1, 0, 0, 0, 0, 0],
                 ],
-                size: 5
+                size: 6
               },
               {
                 level: 4,
                 title: "Cat to Yarn",
                 character: '🐱',
                 target: '🧶',
-                solution: [[0,0], [1,0], [2,0], [2,1], [2,2], [2,3], [3,3], [4,3], [4,4]],
-                paths: [
-                  {from: [0,0], to: [1,0]}, {from: [1,0], to: [2,0]},
-                  {from: [2,0], to: [2,1]}, {from: [2,1], to: [2,2]},
-                  {from: [2,2], to: [2,3]}, {from: [2,3], to: [3,3]},
-                  {from: [3,3], to: [4,3]}, {from: [4,3], to: [4,4]},
-                  {from: [0,0], to: [0,1]}, {from: [1,0], to: [1,1]},
-                  {from: [2,3], to: [1,3]}, {from: [3,3], to: [3,4]}
+                startPos: { x: 1.5, y: 0.5 },
+                endPos: { x: 6.5, y: 6.5 },
+                targetInWall: false,
+                grid: [
+                  [1, 0, 0, 0, 1, 1, 1],
+                  [1, 0, 1, 0, 0, 0, 1],
+                  [1, 0, 1, 1, 1, 0, 1],
+                  [1, 0, 0, 0, 0, 0, 1],
+                  [1, 1, 1, 0, 1, 1, 1],
+                  [1, 0, 0, 0, 0, 0, 1],
+                  [1, 0, 1, 1, 1, 0, 0],
                 ],
-                size: 5
+                size: 7
               },
               {
                 level: 5,
+                title: "Dog to Bone",
+                character: '🐶',
+                target: '🦴',
+                startPos: { x: 0.5, y: 0.5 },
+                endPos: { x: 6.5, y: 5.5 },
+                targetInWall: false,
+                grid: [
+                  [0, 0, 1, 0, 0, 0, 1],
+                  [1, 0, 1, 0, 1, 0, 1],
+                  [1, 0, 0, 0, 1, 0, 1],
+                  [1, 1, 1, 1, 1, 0, 1],
+                  [1, 0, 0, 0, 0, 0, 1],
+                  [1, 0, 1, 1, 1, 0, 0],
+                ],
+                size: 7
+              },
+              {
+                level: 6,
                 title: "Monkey to Banana",
                 character: '🐵',
                 target: '🍌',
-                solution: [[0,0], [0,1], [0,2], [1,2], [1,3], [2,3], [3,3], [4,3], [4,4], [5,4], [5,5]],
-                paths: [
-                  {from: [0,0], to: [0,1]}, {from: [0,1], to: [0,2]},
-                  {from: [0,2], to: [1,2]}, {from: [1,2], to: [1,3]},
-                  {from: [1,3], to: [2,3]}, {from: [2,3], to: [3,3]},
-                  {from: [3,3], to: [4,3]}, {from: [4,3], to: [4,4]},
-                  {from: [4,4], to: [5,4]}, {from: [5,4], to: [5,5]},
-                  {from: [0,0], to: [1,0]}, {from: [1,2], to: [2,2]},
-                  {from: [2,3], to: [2,4]}, {from: [4,3], to: [4,2]}
+                startPos: { x: 0.5, y: 1.5 },
+                endPos: { x: 7.5, y: 6.5 },
+                targetInWall: false,
+                grid: [
+                  [1, 1, 1, 1, 1, 1, 1, 1],
+                  [0, 0, 0, 1, 0, 0, 0, 1],
+                  [1, 1, 0, 1, 0, 1, 0, 1],
+                  [1, 0, 0, 0, 0, 1, 0, 1],
+                  [1, 0, 1, 1, 1, 1, 0, 1],
+                  [1, 0, 0, 0, 0, 0, 0, 1],
+                  [1, 1, 1, 0, 1, 1, 1, 1],
+                  [1, 1, 1, 0, 0, 0, 0, 0],
                 ],
-                size: 6
+                size: 8
+              },
+              {
+                level: 7,
+                title: "Mouse to Cheese",
+                character: '🐭',
+                target: '🧀',
+                startPos: { x: 0.5, y: 2.5 },
+                endPos: { x: 7.5, y: 4.5 },
+                targetInWall: false,
+                grid: [
+                  [1, 1, 1, 1, 1, 1, 1, 1],
+                  [1, 0, 0, 0, 1, 0, 0, 1],
+                  [0, 0, 1, 0, 0, 0, 1, 1],
+                  [1, 1, 1, 0, 1, 0, 1, 1],
+                  [1, 0, 0, 0, 1, 0, 0, 0],
+                  [1, 0, 1, 1, 1, 1, 0, 1],
+                  [1, 0, 0, 0, 0, 0, 0, 1],
+                  [1, 1, 1, 1, 1, 1, 1, 1],
+                ],
+                size: 8
+              },
+              {
+                level: 8,
+                title: "Frog to Fly",
+                character: '🐸',
+                target: '🪰',
+                startPos: { x: 1.5, y: 0.5 },
+                endPos: { x: 7.5, y: 7.5 },
+                targetInWall: false,
+                grid: [
+                  [1, 0, 0, 1, 1, 1, 1, 1],
+                  [1, 0, 1, 0, 0, 0, 0, 1],
+                  [1, 0, 1, 0, 1, 1, 0, 1],
+                  [1, 0, 0, 0, 1, 0, 0, 1],
+                  [1, 1, 1, 0, 1, 0, 1, 1],
+                  [1, 0, 0, 0, 0, 0, 1, 1],
+                  [1, 0, 1, 1, 1, 1, 1, 1],
+                  [1, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                size: 8
+              },
+              {
+                level: 9,
+                title: "Ladybug to Leaf",
+                character: '🐞',
+                target: '🍃',
+                startPos: { x: 0.5, y: 0.5 },
+                endPos: { x: 8.5, y: 7.5 },
+                targetInWall: false,
+                grid: [
+                  [0, 0, 0, 1, 1, 1, 1, 1, 1],
+                  [1, 1, 0, 0, 0, 0, 1, 1, 1],
+                  [1, 1, 1, 1, 1, 0, 0, 0, 1],
+                  [1, 0, 0, 0, 1, 1, 1, 0, 1],
+                  [1, 0, 1, 0, 0, 0, 0, 0, 1],
+                  [1, 0, 1, 1, 1, 1, 1, 0, 1],
+                  [1, 0, 0, 0, 0, 0, 1, 0, 1],
+                  [1, 1, 1, 0, 1, 0, 0, 0, 0],
+                ],
+                size: 9
+              },
+              {
+                level: 10,
+                title: "Butterfly to Flower",
+                character: '🦋',
+                target: '🌺',
+                startPos: { x: 0.5, y: 3.5 },
+                endPos: { x: 8.5, y: 8.5 },
+                targetInWall: false,
+                grid: [
+                  [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                  [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                  [1, 0, 1, 0, 0, 0, 1, 0, 1],
+                  [0, 0, 1, 1, 1, 0, 1, 0, 1],
+                  [1, 0, 0, 0, 0, 0, 1, 0, 1],
+                  [1, 1, 1, 0, 1, 1, 1, 0, 1],
+                  [1, 0, 0, 0, 0, 0, 0, 0, 1],
+                  [1, 0, 1, 1, 1, 0, 1, 1, 1],
+                  [1, 0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                size: 9
               }
             ];
 
@@ -276,69 +485,36 @@
               return { x, y };
             };
 
-            const getGridPos = (x, y) => {
+            const isOnPath = (x, y) => {
               const cellSize = canvasSize.width / currentMaze.size;
               const gridX = Math.floor(x / cellSize);
               const gridY = Math.floor(y / cellSize);
               
-              if (gridX >= 0 && gridX < currentMaze.size && gridY >= 0 && gridY < currentMaze.size) {
-                return [gridX, gridY];
+              if (gridX < 0 || gridX >= currentMaze.size || gridY < 0 || gridY >= currentMaze.size) {
+                return false;
               }
-              return null;
+              
+              return currentMaze.grid[gridY][gridX] === 0;
             };
 
-            const isOnPath = (x, y) => {
+            const isNearTarget = (x, y) => {
               const cellSize = canvasSize.width / currentMaze.size;
-              const threshold = cellSize * 0.4;
-              
-              for (let path of currentMaze.paths) {
-                const x1 = path.from[0] * cellSize + cellSize / 2;
-                const y1 = path.from[1] * cellSize + cellSize / 2;
-                const x2 = path.to[0] * cellSize + cellSize / 2;
-                const y2 = path.to[1] * cellSize + cellSize / 2;
-                
-                const dist = pointToLineDistance(x, y, x1, y1, x2, y2);
-                if (dist < threshold) return true;
-              }
-              return false;
-            };
-
-            const pointToLineDistance = (px, py, x1, y1, x2, y2) => {
-              const A = px - x1;
-              const B = py - y1;
-              const C = x2 - x1;
-              const D = y2 - y1;
-              
-              const dot = A * C + B * D;
-              const lenSq = C * C + D * D;
-              let param = -1;
-              
-              if (lenSq !== 0) param = dot / lenSq;
-              
-              let xx, yy;
-              
-              if (param < 0) {
-                xx = x1;
-                yy = y1;
-              } else if (param > 1) {
-                xx = x2;
-                yy = y2;
-              } else {
-                xx = x1 + param * C;
-                yy = y1 + param * D;
-              }
-              
-              const dx = px - xx;
-              const dy = py - yy;
-              return Math.sqrt(dx * dx + dy * dy);
+              const targetX = currentMaze.endPos.x * cellSize;
+              const targetY = currentMaze.endPos.y * cellSize;
+              const distance = Math.sqrt((x - targetX) ** 2 + (y - targetY) ** 2);
+              return distance < cellSize * 0.6;
             };
 
             const handleStart = (clientX, clientY) => {
               const pos = getCanvasPos(clientX, clientY);
               if (!pos) return;
               
-              const gridPos = getGridPos(pos.x, pos.y);
-              if (gridPos && gridPos[0] === 0 && gridPos[1] === 0) {
+              const cellSize = canvasSize.width / currentMaze.size;
+              const startX = currentMaze.startPos.x * cellSize;
+              const startY = currentMaze.startPos.y * cellSize;
+              const distance = Math.sqrt((pos.x - startX) ** 2 + (pos.y - startY) ** 2);
+              
+              if (distance < cellSize * 0.6) {
                 setIsDrawing(true);
                 setDrawnPath([pos]);
               }
@@ -352,6 +528,9 @@
               
               if (isOnPath(pos.x, pos.y)) {
                 setDrawnPath(prev => [...prev, pos]);
+              } else {
+                setIsDrawing(false);
+                setTimeout(() => setDrawnPath([]), 300);
               }
             };
 
@@ -362,13 +541,11 @@
               if (drawnPath.length === 0) return;
               
               const lastPos = drawnPath[drawnPath.length - 1];
-              const endGridPos = getGridPos(lastPos.x, lastPos.y);
               
-              const targetPos = currentMaze.solution[currentMaze.solution.length - 1];
-              if (endGridPos && endGridPos[0] === targetPos[0] && endGridPos[1] === targetPos[1]) {
+              if (isNearTarget(lastPos.x, lastPos.y)) {
                 setWon(true);
               } else {
-                setTimeout(() => setDrawnPath([]), 500);
+                setTimeout(() => setDrawnPath([]), 300);
               }
             };
 
@@ -393,26 +570,31 @@
               if (!canvas || canvasSize.width === 0) return;
               
               const ctx = canvas.getContext('2d');
-              ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
-              
               const cellSize = canvasSize.width / currentMaze.size;
               
-              // Draw paths
-              ctx.strokeStyle = '#94a3b8';
-              ctx.lineWidth = cellSize * 0.25;
-              ctx.lineCap = 'round';
+              ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
               
-              currentMaze.paths.forEach(path => {
-                ctx.beginPath();
-                ctx.moveTo(path.from[0] * cellSize + cellSize / 2, path.from[1] * cellSize + cellSize / 2);
-                ctx.lineTo(path.to[0] * cellSize + cellSize / 2, path.to[1] * cellSize + cellSize / 2);
-                ctx.stroke();
-              });
+              // Draw maze walls
+              ctx.fillStyle = '#1f2937';
+              ctx.strokeStyle = '#1f2937';
+              ctx.lineWidth = 2;
+              
+              for (let y = 0; y < currentMaze.size; y++) {
+                for (let x = 0; x < currentMaze.size; x++) {
+                  if (currentMaze.grid[y][x] === 1) {
+                    ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                  } else {
+                    ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                  }
+                }
+              }
               
               // Draw user's path
               if (drawnPath.length > 1) {
                 ctx.strokeStyle = '#3b82f6';
-                ctx.lineWidth = cellSize * 0.2;
+                ctx.lineWidth = 8;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 ctx.beginPath();
                 ctx.moveTo(drawnPath[0].x, drawnPath[0].y);
                 drawnPath.forEach(point => {
@@ -429,7 +611,7 @@
                 </button>
                 <h2 className="text-3xl md:text-4xl font-bold text-center mb-2 text-orange-800">{currentMaze.title}</h2>
                 <p className="text-xl md:text-2xl text-center mb-2 text-orange-700">Level {currentMaze.level} of {mazes.length}</p>
-                <p className="text-lg md:text-xl text-center mb-4 text-orange-600">Drag your finger from {currentMaze.character} to {currentMaze.target}!</p>
+                <p className="text-lg md:text-xl text-center mb-4 text-orange-600">Help the {currentMaze.character} get to the {currentMaze.target}!</p>
                 
                 <div className="max-w-3xl mx-auto bg-white p-4 md:p-8 rounded-3xl shadow-2xl">
                   <div id="maze-container" className="relative bg-white rounded-2xl" style={{ aspectRatio: '1/1', maxWidth: '600px', margin: '0 auto' }}>
@@ -459,24 +641,25 @@
                       }}
                     />
                     
-                    {/* Emojis positioned on grid */}
-                    <div className="absolute inset-0 pointer-events-none grid" style={{ gridTemplateColumns: `repeat(${currentMaze.size}, 1fr)` }}>
-                      {Array.from({ length: currentMaze.size * currentMaze.size }).map((_, i) => {
-                        const x = i % currentMaze.size;
-                        const y = Math.floor(i / currentMaze.size);
-                        const isStart = x === 0 && y === 0;
-                        const isEnd = x === currentMaze.solution[currentMaze.solution.length - 1][0] && 
-                                     y === currentMaze.solution[currentMaze.solution.length - 1][1];
-                        
-                        return (
-                          <div key={i} className="flex items-center justify-center">
-                            <div className="text-4xl md:text-5xl lg:text-6xl">
-                              {isStart && currentMaze.character}
-                              {isEnd && currentMaze.target}
-                            </div>
-                          </div>
-                        );
-                      })}
+                    {/* Character and target emojis */}
+                    <div className="absolute pointer-events-none" style={{
+                      left: `${(currentMaze.startPos.x / currentMaze.size) * 100}%`,
+                      top: `${(currentMaze.startPos.y / currentMaze.size) * 100}%`,
+                      transform: 'translate(-50%, -50%)',
+                      fontSize: `${Math.min(canvasSize.width / currentMaze.size * 0.7, 60)}px`
+                    }}>
+                      {currentMaze.character}
+                    </div>
+                    <div className="absolute pointer-events-none" style={{
+                      left: `${(currentMaze.endPos.x / currentMaze.size) * 100}%`,
+                      top: `${(currentMaze.endPos.y / currentMaze.size) * 100}%`,
+                      transform: 'translate(-50%, -50%)',
+                      fontSize: `${Math.min(canvasSize.width / currentMaze.size * 0.7, 60)}px`,
+                      backgroundColor: currentMaze.targetInWall ? '#1f2937' : 'transparent',
+                      padding: currentMaze.targetInWall ? '8px' : '0',
+                      borderRadius: currentMaze.targetInWall ? '8px' : '0'
+                    }}>
+                      {currentMaze.target}
                     </div>
                   </div>
                   
@@ -499,74 +682,752 @@
             );
           };
 
-          const NumberGame = () => {
-            const [gameType, setGameType] = useState(null);
+          const NumberGamesHub = () => {
+            const [gameSection, setGameSection] = useState(null);
+            const [orderType, setOrderType] = useState(null);
+            const [digitType, setDigitType] = useState(null);
+            const [difficulty, setDifficulty] = useState(null);
             const [currentQuestion, setCurrentQuestion] = useState(0);
-            const [score, setScore] = useState(0);
-            const [selectedAnswers, setSelectedAnswers] = useState([]);
-            const [showResult, setShowResult] = useState(false);
-            const [isCorrect, setIsCorrect] = useState(false);
+            const [selectedNumbers, setSelectedNumbers] = useState([]);
+            const [selectedSymbol, setSelectedSymbol] = useState(null);
+            const [isCorrect, setIsCorrect] = useState(null);
 
-            const ascendingQuestions = [
-              { numbers: [5, 2, 6], correct: [2, 5, 6] },
-              { numbers: [3, 1, 4], correct: [1, 3, 4] },
-              { numbers: [7, 9, 3], correct: [3, 7, 9] },
-              { numbers: [6, 4, 8], correct: [4, 6, 8] },
-              { numbers: [5, 7, 1], correct: [1, 5, 7] }
+            const level1_1digitAscending = [
+              [7, 3], [1, 5], [8, 2], [4, 9], [6, 1], [5, 2], [3, 8], [4, 1], [5, 9], [7, 2],
+              [6, 3], [8, 1], [4, 7], [9, 2], [5, 3], [7, 1], [8, 4], [6, 2], [9, 3], [8, 5]
             ];
 
-            const descendingQuestions = [
-              { numbers: [5, 8, 3], correct: [8, 5, 3] },
-              { numbers: [6, 9, 2], correct: [9, 6, 2] },
-              { numbers: [4, 1, 7], correct: [7, 4, 1] },
-              { numbers: [5, 3, 9], correct: [9, 5, 3] },
-              { numbers: [6, 2, 8], correct: [8, 6, 2] }
+            const level1_1digitDescending = [
+              [3, 7], [5, 1], [2, 8], [9, 4], [1, 6], [2, 5], [8, 3], [1, 4], [9, 5], [2, 7],
+              [3, 6], [1, 8], [7, 4], [2, 9], [3, 5], [1, 7], [4, 8], [2, 6], [3, 9], [5, 8]
             ];
 
-            const betweenQuestions = [
-              { numbers: [3, '?', 5], correct: 4, options: [2, 4, 6] },
-              { numbers: [5, '?', 7], correct: 6, options: [4, 6, 8] },
-              { numbers: [1, '?', 3], correct: 2, options: [1, 2, 4] },
-              { numbers: [6, '?', 8], correct: 7, options: [5, 7, 9] },
-              { numbers: [2, '?', 4], correct: 3, options: [1, 3, 5] }
+            const level1_2digitAscending = [
+              [28, 15], [12, 45], [67, 23], [34, 89], [56, 11], [22, 78], [91, 33], [47, 14],
+              [25, 82], [93, 36], [64, 18], [27, 75], [86, 38], [49, 97], [58, 13], [69, 24],
+              [35, 81], [92, 46], [73, 17], [84, 28]
             ];
 
-            const afterQuestions = [
-              { numbers: [4, '?', '?'], correct: 5, options: [3, 5, 6] },
-              { numbers: [7, '?', '?'], correct: 8, options: [6, 8, 9] },
-              { numbers: [2, '?', '?'], correct: 3, options: [1, 3, 4] },
-              { numbers: [5, '?', '?'], correct: 6, options: [4, 6, 7] },
-              { numbers: [8, '?', '?'], correct: 9, options: [7, 9, 10] }
+            const level1_2digitDescending = [
+              [15, 28], [45, 12], [23, 67], [89, 34], [11, 56], [78, 22], [33, 91], [14, 47],
+              [82, 25], [36, 93], [18, 64], [75, 27], [38, 86], [97, 49], [13, 58], [24, 69],
+              [81, 35], [46, 92], [17, 73], [28, 84]
             ];
 
-            const beforeQuestions = [
-              { numbers: ['?', '?', 5], correct: 4, options: [3, 4, 6] },
-              { numbers: ['?', '?', 8], correct: 7, options: [6, 7, 9] },
-              { numbers: ['?', '?', 3], correct: 2, options: [1, 2, 4] },
-              { numbers: ['?', '?', 7], correct: 6, options: [5, 6, 8] },
-              { numbers: ['?', '?', 9], correct: 8, options: [7, 8, 10] }
+            const level3_1digitAscending = [
+              [5, 2, 8], [4, 1, 7], [6, 3, 9], [3, 1, 5], [4, 2, 6], [5, 3, 7], [6, 4, 8],
+              [2, 1, 3], [5, 4, 6], [8, 7, 9], [3, 2, 4], [6, 5, 7], [5, 1, 9], [6, 2, 8],
+              [4, 3, 5], [6, 1, 8], [5, 2, 7], [7, 3, 9], [4, 1, 8], [4, 2, 9]
             ];
 
-            const getQuestions = () => {
-              if (gameType === 'ascending') return ascendingQuestions;
-              if (gameType === 'descending') return descendingQuestions;
-              if (gameType === 'between') return betweenQuestions;
-              if (gameType === 'after') return afterQuestions;
-              if (gameType === 'before') return beforeQuestions;
+            const level3_1digitDescending = [
+              [5, 8, 2], [4, 7, 1], [6, 9, 3], [3, 5, 1], [4, 6, 2], [5, 7, 3], [6, 8, 4],
+              [2, 3, 1], [5, 6, 4], [8, 9, 7], [3, 4, 2], [6, 7, 5], [5, 9, 1], [6, 8, 2],
+              [4, 5, 3], [6, 8, 1], [5, 7, 2], [7, 9, 3], [4, 8, 1], [4, 9, 2]
+            ];
+
+            const oneDigitComparisons = [
+              { num1: 7, num2: 3, answer: '>' },
+              { num1: 2, num2: 8, answer: '<' },
+              { num1: 5, num2: 9, answer: '<' },
+              { num1: 6, num2: 1, answer: '>' },
+              { num1: 4, num2: 7, answer: '<' },
+              { num1: 9, num2: 2, answer: '>' },
+              { num1: 3, num2: 6, answer: '<' },
+              { num1: 8, num2: 5, answer: '>' },
+              { num1: 1, num2: 4, answer: '<' },
+              { num1: 7, num2: 2, answer: '>' },
+              { num1: 3, num2: 9, answer: '<' },
+              { num1: 8, num2: 1, answer: '>' },
+              { num1: 2, num2: 5, answer: '<' },
+              { num1: 6, num2: 4, answer: '>' },
+              { num1: 4, num2: 8, answer: '<' },
+              { num1: 9, num2: 3, answer: '>' },
+              { num1: 1, num2: 7, answer: '<' },
+              { num1: 5, num2: 2, answer: '>' },
+              { num1: 3, num2: 8, answer: '<' },
+              { num1: 7, num2: 4, answer: '>' }
+            ];
+
+            const twoDigitComparisons = [
+              { num1: 45, num2: 23, answer: '>' },
+              { num1: 12, num2: 67, answer: '<' },
+              { num1: 34, num2: 89, answer: '<' },
+              { num1: 78, num2: 45, answer: '>' },
+              { num1: 23, num2: 56, answer: '<' },
+              { num1: 91, num2: 34, answer: '>' },
+              { num1: 15, num2: 82, answer: '<' },
+              { num1: 67, num2: 28, answer: '>' },
+              { num1: 34, num2: 76, answer: '<' },
+              { num1: 89, num2: 12, answer: '>' },
+              { num1: 25, num2: 63, answer: '<' },
+              { num1: 74, num2: 38, answer: '>' },
+              { num1: 19, num2: 54, answer: '<' },
+              { num1: 85, num2: 47, answer: '>' },
+              { num1: 36, num2: 71, answer: '<' },
+              { num1: 92, num2: 58, answer: '>' },
+              { num1: 43, num2: 86, answer: '<' },
+              { num1: 69, num2: 24, answer: '>' },
+              { num1: 17, num2: 95, answer: '<' },
+              { num1: 81, num2: 39, answer: '>' }
+            ];
+
+            const getSequenceQuestions = () => {
+              if (difficulty === 1 && orderType === 'ascending' && digitType === '1digit') return level1_1digitAscending;
+              if (difficulty === 1 && orderType === 'descending' && digitType === '1digit') return level1_1digitDescending;
+              if (difficulty === 1 && orderType === 'ascending' && digitType === '2digit') return level1_2digitAscending;
+              if (difficulty === 1 && orderType === 'descending' && digitType === '2digit') return level1_2digitDescending;
+              if (digitType === '3numbers' && orderType === 'ascending') return level3_1digitAscending;
+              if (digitType === '3numbers' && orderType === 'descending') return level3_1digitDescending;
               return [];
             };
 
-            const questions = getQuestions();
-            const question = questions[currentQuestion];
+            const getComparisonQuestions = () => {
+              return digitType === '1digit' ? oneDigitComparisons : twoDigitComparisons;
+            };
 
-            const handleNumberClick = (num) => {
-              if (gameType === 'ascending' || gameType === 'descending') {
-                if (selectedAnswers.includes(num)) return;
+            if (!gameSection) {
+              return (
+                <div className="min-h-screen bg-gradient-to-br from-yellow-100 to-orange-200 p-8 flex items-center justify-center">
+                  <div className="max-w-4xl mx-auto">
+                    <button onClick={() => setCurrentGame(null)} className="mb-6 bg-white px-6 py-3 rounded-full shadow-lg text-lg">
+                      ← Back
+                    </button>
+                    <h1 className="text-5xl font-bold text-center mb-12 text-orange-800">
+                      Number Games
+                    </h1>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <button
+                        onClick={() => setGameSection('sequence')}
+                        className="bg-white p-12 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                      >
+                        <div className="text-8xl mb-4">🪜🔢</div>
+                        <h2 className="text-3xl font-bold text-green-600 mb-4">Order Numbers</h2>
+                        <p className="text-gray-600 text-xl">Ascending & Descending</p>
+                      </button>
+                      <button
+                        onClick={() => setGameSection('comparison')}
+                        className="bg-white p-12 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                      >
+                        <div className="text-8xl mb-4">⚖️</div>
+                        <h2 className="text-3xl font-bold text-purple-600 mb-4">Compare Numbers</h2>
+                        <p className="text-gray-600 text-xl">Greater Than / Less Than</p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (gameSection === 'sequence') {
+              const questions = getSequenceQuestions();
+              const currentNumbers = questions[currentQuestion] || [];
+
+              const handleNumberClick = (number, index) => {
+                if (selectedNumbers.includes(index)) return;
+                if (isCorrect !== null) return;
+
+                const newSelected = [...selectedNumbers, index];
+                setSelectedNumbers(newSelected);
+
+                if (newSelected.length === currentNumbers.length) {
+                  const selectedOrder = newSelected.map(i => currentNumbers[i]);
+                  const correctOrder = orderType === 'ascending' 
+                    ? [...currentNumbers].sort((a, b) => a - b)
+                    : [...currentNumbers].sort((a, b) => b - a);
+                  
+                  const correct = JSON.stringify(selectedOrder) === JSON.stringify(correctOrder);
+                  setTimeout(() => {
+                    setIsCorrect(correct);
+                  }, 300);
+                }
+              };
+
+              const nextQuestion = () => {
+                if (currentQuestion < questions.length - 1) {
+                  setCurrentQuestion(currentQuestion + 1);
+                  setSelectedNumbers([]);
+                  setIsCorrect(null);
+                } else {
+                  setDigitType(null);
+                  setDifficulty(null);
+                  setCurrentQuestion(0);
+                  setSelectedNumbers([]);
+                  setIsCorrect(null);
+                }
+              };
+
+              if (!orderType) {
+                return (
+                  <div className="min-h-screen bg-gradient-to-br from-yellow-100 to-orange-200 p-8 flex items-center justify-center">
+                    <div className="max-w-2xl mx-auto">
+                      <button
+                        onClick={() => setGameSection(null)}
+                        className="mb-6 bg-white px-6 py-3 rounded-full shadow-lg text-lg"
+                      >
+                        ← Back
+                      </button>
+                      <h1 className="text-5xl font-bold text-center mb-12 text-orange-800">
+                        Order Numbers
+                      </h1>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <button
+                          onClick={() => setOrderType('ascending')}
+                          className="bg-white p-12 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                        >
+                          <h2 className="text-3xl font-bold text-green-600 mb-4">Ascending</h2>
+                          <p className="text-gray-600 text-xl mb-4">Small to Big</p>
+                          <div className="text-4xl">1 → 2 → 3</div>
+                        </button>
+                        <button
+                          onClick={() => setOrderType('descending')}
+                          className="bg-white p-12 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                        >
+                          <h2 className="text-3xl font-bold text-purple-600 mb-4">Descending</h2>
+                          <p className="text-gray-600 text-xl mb-4">Big to Small</p>
+                          <div className="text-4xl">3 → 2 → 1</div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (!digitType) {
+                return (
+                  <div className="min-h-screen bg-gradient-to-br from-yellow-100 to-orange-200 p-8 flex items-center justify-center">
+                    <div className="max-w-3xl mx-auto">
+                      <button
+                        onClick={() => setOrderType(null)}
+                        className="mb-6 bg-white px-6 py-3 rounded-full shadow-lg text-lg"
+                      >
+                        ← Back
+                      </button>
+                      <h1 className="text-5xl font-bold text-center mb-4 text-orange-800">
+                        {orderType === 'ascending' ? 'Ascending Order' : 'Descending Order'}
+                      </h1>
+                      <p className="text-2xl text-center mb-12 text-orange-700">
+                        {orderType === 'ascending' ? 'Small to Big' : 'Big to Small'}
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <button
+                          onClick={() => { setDigitType('1digit'); setDifficulty(1); }}
+                          className="bg-white p-10 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                        >
+                          <h2 className="text-3xl font-bold text-blue-600 mb-4">1-Digit</h2>
+                          <p className="text-gray-600 text-xl mb-4">Single digits</p>
+                          <div className="text-5xl">3, 7</div>
+                        </button>
+                        <button
+                          onClick={() => { setDigitType('2digit'); setDifficulty(1); }}
+                          className="bg-white p-10 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                        >
+                          <h2 className="text-3xl font-bold text-orange-600 mb-4">2-Digit</h2>
+                          <p className="text-gray-600 text-xl mb-4">Tens</p>
+                          <div className="text-5xl">23, 67</div>
+                        </button>
+                        <button
+                          onClick={() => { setDigitType('3numbers'); setDifficulty(3); }}
+                          className="bg-white p-10 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                        >
+                          <h2 className="text-3xl font-bold text-red-600 mb-4">3 Numbers</h2>
+                          <p className="text-gray-600 text-xl mb-4">Three in a box</p>
+                          <div className="text-5xl">2, 5, 8</div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="min-h-screen bg-gradient-to-br from-yellow-100 to-orange-200 p-8">
+                  <button
+                    onClick={() => { setDigitType(null); setDifficulty(null); setCurrentQuestion(0); setSelectedNumbers([]); setIsCorrect(null); }}
+                    className="mb-6 bg-white px-6 py-3 rounded-full shadow-lg text-lg"
+                  >
+                    ← Back
+                  </button>
+
+                  <div className="max-w-4xl mx-auto">
+                    <div className="text-center mb-8">
+                      <h2 className="text-4xl font-bold text-orange-800 mb-2">
+                        {orderType === 'ascending' ? 'Smallest to Biggest' : 'Biggest to Smallest'}
+                      </h2>
+                      <p className="text-2xl text-orange-700 mb-1">
+                        {digitType === '1digit' && '1-Digit Numbers (2 in box)'}
+                        {digitType === '2digit' && '2-Digit Numbers (2 in box)'}
+                        {digitType === '3numbers' && '3 Numbers in Box'}
+                      </p>
+                      <p className="text-xl text-orange-600">
+                        Question {currentQuestion + 1} of {questions.length}
+                      </p>
+                    </div>
+
+                    <div className="bg-white p-12 rounded-3xl shadow-2xl">
+                      <div 
+                        className={`flex justify-center mb-8 rounded-2xl overflow-hidden mx-auto transition-all duration-500 ${
+                          isCorrect === true ? 'bg-green-400' : isCorrect === false ? 'bg-red-400' : 'bg-white'
+                        }`}
+                        style={{ 
+                          width: 'fit-content',
+                          border: '4px solid #3b82f6',
+                        }}
+                      >
+                        {currentNumbers.map((number, index) => (
+                          <React.Fragment key={index}>
+                            <button
+                              onClick={() => handleNumberClick(number, index)}
+                              disabled={selectedNumbers.includes(index) || isCorrect !== null}
+                              className={`px-8 py-6 text-6xl font-bold transition-all duration-300 ${
+                                selectedNumbers.includes(index)
+                                  ? 'bg-green-200 text-gray-500'
+                                  : isCorrect === true
+                                  ? 'bg-green-400 text-white'
+                                  : isCorrect === false
+                                  ? 'bg-red-400 text-white'
+                                  : 'bg-white text-gray-800 hover:bg-blue-50'
+                              }`}
+                              style={{ minWidth: digitType === '2digit' ? '120px' : '100px' }}
+                            >
+                              {number}
+                            </button>
+                            {index < currentNumbers.length - 1 && (
+                              <div className={`w-1 transition-all duration-500 ${
+                                isCorrect === true ? 'bg-green-600' : isCorrect === false ? 'bg-red-600' : 'bg-blue-500'
+                              }`} />
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </div>
+
+                      {isCorrect === true && (
+                        <div className="text-center">
+                          <p className="text-5xl font-bold text-green-600 mb-6">
+                            🎉 Correct! 🎉
+                          </p>
+                          <button
+                            onClick={nextQuestion}
+                            className="bg-green-500 text-white px-12 py-4 rounded-full text-2xl font-bold hover:bg-green-600 transform hover:scale-105 transition"
+                          >
+                            {currentQuestion < questions.length - 1 ? 'Next →' : 'Finish!'}
+                          </button>
+                        </div>
+                      )}
+
+                      {isCorrect === false && (
+                        <div className="text-center">
+                          <p className="text-5xl font-bold text-red-600 mb-6">
+                            Try Again!
+                          </p>
+                          <button
+                            onClick={() => { setSelectedNumbers([]); setIsCorrect(null); }}
+                            className="bg-orange-500 text-white px-12 py-4 rounded-full text-2xl font-bold hover:bg-orange-600 transform hover:scale-105 transition"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (gameSection === 'comparison') {
+              const questions = getComparisonQuestions();
+              const currentQ = questions[currentQuestion];
+
+              const handleSymbolClick = (symbol) => {
+                if (selectedSymbol !== null) return;
                 
-                const newAnswers = [...selectedAnswers, num];
-                setSelectedAnswers(newAnswers);
+                setSelectedSymbol(symbol);
+                const correct = symbol === currentQ.answer;
                 
-                if (newAnswers.length === 3) {
-                  const correct = JSON.stringify(newAnswers) === JSON.stringify(question.correct);
+                setTimeout(() => {
                   setIsCorrect(correct);
-                  if (correct) setScore(score +
+                }, 300);
+              };
+
+              const nextQuestion = () => {
+                if (currentQuestion < questions.length - 1) {
+                  setCurrentQuestion(currentQuestion + 1);
+                  setSelectedSymbol(null);
+                  setIsCorrect(null);
+                } else {
+                  setDigitType(null);
+                  setCurrentQuestion(0);
+                  setSelectedSymbol(null);
+                  setIsCorrect(null);
+                }
+              };
+
+              if (!digitType) {
+                return (
+                  <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-200 p-8 flex items-center justify-center">
+                    <div className="max-w-3xl mx-auto">
+                      <button
+                        onClick={() => setGameSection(null)}
+                        className="mb-6 bg-white px-6 py-3 rounded-full shadow-lg text-lg"
+                      >
+                        ← Back
+                      </button>
+                      <h1 className="text-5xl font-bold text-center mb-12 text-purple-800">
+                        Greater Than / Less Than
+                      </h1>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <button
+                          onClick={() => setDigitType('1digit')}
+                          className="bg-white p-12 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                        >
+                          <h2 className="text-3xl font-bold text-blue-600 mb-4">1-Digit</h2>
+                          <p className="text-gray-600 text-xl mb-4">Single digits</p>
+                          <div className="text-5xl">7 __ 3</div>
+                        </button>
+                        <button
+                          onClick={() => setDigitType('2digit')}
+                          className="bg-white p-12 rounded-3xl shadow-xl hover:scale-105 transform transition"
+                        >
+                          <h2 className="text-3xl font-bold text-orange-600 mb-4">2-Digit</h2>
+                          <p className="text-gray-600 text-xl mb-4">Tens</p>
+                          <div className="text-5xl">45 __ 23</div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-200 p-8">
+                  <button
+                    onClick={() => { setDigitType(null); setCurrentQuestion(0); setSelectedSymbol(null); setIsCorrect(null); }}
+                    className="mb-6 bg-white px-6 py-3 rounded-full shadow-lg text-lg"
+                  >
+                    ← Back
+                  </button>
+
+                  <div className="max-w-4xl mx-auto">
+                    <div className="text-center mb-8">
+                      <h2 className="text-4xl font-bold text-purple-800 mb-2">
+                        Greater Than / Less Than
+                      </h2>
+                      <p className="text-2xl text-purple-700 mb-1">
+                        {digitType === '1digit' ? '1-Digit Numbers' : '2-Digit Numbers'}
+                      </p>
+                      <p className="text-xl text-purple-600">
+                        Question {currentQuestion + 1} of {questions.length}
+                      </p>
+                    </div>
+
+                    <div className="bg-white p-12 rounded-3xl shadow-2xl">
+                      <div className="flex justify-center items-center gap-8 mb-12">
+                        <div className="w-32 h-32 border-4 border-purple-500 bg-white rounded-2xl flex items-center justify-center">
+                          <div className="text-7xl font-bold text-gray-800">{currentQ.num1}</div>
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                          <button
+                            onClick={() => handleSymbolClick('>')}
+                            disabled={selectedSymbol !== null}
+                            className={`w-28 h-28 text-8xl font-bold rounded-xl transition-all duration-300 flex items-center justify-center ${
+                              selectedSymbol === '>'
+                                ? isCorrect === true
+                                  ? 'bg-green-400 text-white'
+                                  : isCorrect === false
+                                  ? 'bg-red-400 text-white'
+                                  : 'bg-blue-200 text-gray-700'
+                                : 'bg-blue-500 text-white hover:bg-blue-600'
+                            }`}
+                          >
+                            &gt;
+                          </button>
+                          <button
+                            onClick={() => handleSymbolClick('<')}
+                            disabled={selectedSymbol !== null}
+                            className={`w-20 h-20 text-5xl font-bold rounded-xl transition-all duration-300 flex items-center justify-center ${
+                              selectedSymbol === '<'
+                                ? isCorrect === true
+                                  ? 'bg-green-400 text-white'
+                                  : isCorrect === false
+                                  ? 'bg-red-400 text-white'
+                                  : 'bg-blue-200 text-gray-700'
+                                : 'bg-blue-500 text-white hover:bg-blue-600'
+                            }`}
+                          >
+                            &lt;
+                          </button>
+                        </div>
+
+                        <div className="w-32 h-32 border-4 border-purple-500 bg-white rounded-2xl flex items-center justify-center">
+                          <div className="text-7xl font-bold text-gray-800">{currentQ.num2}</div>
+                        </div>
+                      </div>
+
+                      {isCorrect === true && (
+                        <div className="text-center">
+                          <p className="text-5xl font-bold text-green-600 mb-6">
+                            🎉 Correct! 🎉
+                          </p>
+                          <p className="text-3xl text-gray-700 mb-6">
+                            {currentQ.num1} {currentQ.answer} {currentQ.num2}
+                          </p>
+                          <button
+                            onClick={nextQuestion}
+                            className="bg-green-500 text-white px-12 py-4 rounded-full text-2xl font-bold hover:bg-green-600 transform hover:scale-105 transition"
+                          >
+                            {currentQuestion < questions.length - 1 ? 'Next →' : 'Finish!'}
+                          </button>
+                        </div>
+                      )}
+
+                      {isCorrect === false && (
+                        <div className="text-center">
+                          <p className="text-5xl font-bold text-red-600 mb-6">
+                            Try Again!
+                          </p>
+                          <p className="text-3xl text-gray-700 mb-6">
+                            The correct answer is: {currentQ.num1} {currentQ.answer} {currentQ.num2}
+                          </p>
+                          <button
+                            onClick={() => { setSelectedSymbol(null); setIsCorrect(null); }}
+                            className="bg-orange-500 text-white px-12 py-4 rounded-full text-2xl font-bold hover:bg-orange-600 transform hover:scale-105 transition"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+          };
+
+          const StoriesGame = () => {
+            const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+            const story = stories[currentStoryIndex];
+
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-green-100 to-teal-200 p-8">
+                <button
+                  onClick={() => setCurrentGame(null)}
+                  className="mb-6 flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-lg"
+                >
+                  ← Back
+                </button>
+                <h1 className="text-4xl font-bold text-center mb-8 text-green-800">{story.title}</h1>
+                
+                <div className="max-w-3xl mx-auto bg-white p-12 rounded-3xl shadow-2xl">
+                  {story.lines.map((line, index) => (
+                    <p key={index} className="text-3xl mb-6 text-gray-800 leading-relaxed">
+                      {line}
+                    </p>
+                  ))}
+                  
+                  <div className="flex gap-4 justify-center mt-12">
+                    {currentStoryIndex > 0 && (
+                      <button
+                        onClick={() => setCurrentStoryIndex(currentStoryIndex - 1)}
+                        className="bg-green-500 text-white px-8 py-4 rounded-full text-xl hover:bg-green-600"
+                      >
+                        ← Previous Story
+                      </button>
+                    )}
+                    {currentStoryIndex < stories.length - 1 && (
+                      <button
+                        onClick={() => setCurrentStoryIndex(currentStoryIndex + 1)}
+                        className="bg-green-500 text-white px-8 py-4 rounded-full text-xl hover:bg-green-600"
+                      >
+                        Next Story →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
+          const SightWordsGame = () => {
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [touchStart, setTouchStart] = useState(0);
+            const [touchEnd, setTouchEnd] = useState(0);
+
+            const sightWords = [
+              'am', 'an', 'as', 'at', 'be', 'by', 'do', 'go', 'he', 'if', 
+              'in', 'is', 'it', 'me', 'my', 'no', 'of', 'on', 'or', 'so', 
+              'to', 'up', 'us', 'we',
+              'all', 'and', 'are', 'but', 'can', 'did', 'for', 'get', 'got', 'had',
+              'has', 'her', 'him', 'his', 'how', 'let', 'may', 'new', 'not', 'now',
+              'old', 'one', 'our', 'out', 'own', 'put', 'ran', 'run', 'saw', 'say',
+              'see', 'she', 'the', 'too', 'two', 'use', 'was', 'way', 'who', 'why',
+              'yes', 'you',
+              'also', 'back', 'been', 'call', 'came', 'come', 'down', 'each', 'find', 'from',
+              'give', 'good', 'have', 'help', 'here', 'into', 'just', 'know', 'like', 'long',
+              'look', 'made', 'make', 'many', 'more', 'must', 'name', 'over', 'said', 'some',
+              'take', 'than', 'that', 'them', 'then', 'they', 'this', 'time', 'very', 'want',
+              'well', 'went', 'were', 'what', 'when', 'will', 'with', 'your', 'there', 'among',
+              'between'
+            ];
+
+            const minSwipeDistance = 50;
+
+            const handleTouchStart = (e) => {
+              setTouchEnd(0);
+              setTouchStart(e.targetTouches[0].clientX);
+            };
+
+            const handleTouchMove = (e) => {
+              setTouchEnd(e.targetTouches[0].clientX);
+            };
+
+            const handleTouchEnd = () => {
+              if (!touchStart || !touchEnd) return;
+              
+              const distance = touchStart - touchEnd;
+              const isLeftSwipe = distance > minSwipeDistance;
+              const isRightSwipe = distance < -minSwipeDistance;
+              
+              if (isLeftSwipe) {
+                goNext();
+              } else if (isRightSwipe) {
+                goPrevious();
+              }
+            };
+
+            const goNext = () => {
+              if (currentIndex < sightWords.length - 1) {
+                setCurrentIndex(currentIndex + 1);
+              }
+            };
+
+            const goPrevious = () => {
+              if (currentIndex > 0) {
+                setCurrentIndex(currentIndex - 1);
+              }
+            };
+
+            const handleKeyDown = (e) => {
+              if (e.key === 'ArrowRight') {
+                goNext();
+              } else if (e.key === 'ArrowLeft') {
+                goPrevious();
+              }
+            };
+
+            useEffect(() => {
+              window.addEventListener('keydown', handleKeyDown);
+              return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [currentIndex]);
+
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 p-8 flex items-center justify-center">
+                <div className="w-full max-w-4xl">
+                  <button
+                    onClick={() => setCurrentGame(null)}
+                    className="mb-6 bg-white px-6 py-3 rounded-full shadow-lg text-lg"
+                  >
+                    ← Back
+                  </button>
+                  <h1 className="text-4xl md:text-5xl font-bold text-center mb-8 text-purple-800">
+                    Sight Words Flash Cards
+                  </h1>
+                  
+                  <div className="text-center mb-6">
+                    <p className="text-2xl text-purple-700">
+                      Word {currentIndex + 1} of {sightWords.length}
+                    </p>
+                  </div>
+
+                  <div
+                    className="relative bg-white rounded-3xl shadow-2xl p-16 md:p-24 flex items-center justify-center min-h-[400px] cursor-pointer"
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    onClick={goNext}
+                  >
+                    <div className="text-center">
+                      <h2 className="text-9xl md:text-[12rem] font-bold text-purple-600">
+                        {sightWords[currentIndex]}
+                      </h2>
+                    </div>
+
+                    {currentIndex > 0 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); goPrevious(); }}
+                        className="absolute left-4 md:left-8 top-1/2 transform -translate-y-1/2 bg-purple-500 text-white rounded-full p-4 hover:bg-purple-600 transition"
+                      >
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                    )}
+
+                    {currentIndex < sightWords.length - 1 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); goNext(); }}
+                        className="absolute right-4 md:right-8 top-1/2 transform -translate-y-1/2 bg-purple-500 text-white rounded-full p-4 hover:bg-purple-600 transition"
+                      >
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="mt-8 text-center">
+                    <p className="text-xl text-purple-700">
+                      👆 Tap or swipe to see the next word
+                    </p>
+                    <p className="text-lg text-purple-600 mt-2">
+                      ← Swipe left to go back | Swipe right to go forward →
+                    </p>
+                  </div>
+
+                  <div className="mt-8 bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-300"
+                      style={{ width: `${((currentIndex + 1) / sightWords.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
+          if (currentSection === 'menu') {
+            return <MainMenu />;
+          }
+
+          if (currentSection === 'brain') {
+            if (currentGame === 'maze') {
+              return <SimpleMaze />;
+            }
+            if (currentGame === 'numbers') {
+              return <NumberGamesHub />;
+            }
+            return <BrainGamesMenu />;
+          }
+
+          if (currentSection === 'reading') {
+            if (currentGame === 'stories') {
+              return <StoriesGame />;
+            }
+            if (currentGame === 'sightwords') {
+              return <SightWordsGame />;
+            }
+            return <ReadingMenu />;
+          }
+
+          if (currentSection === 'coloring') {
+            return <ColoringMenu />;
+          }
+
+          return <MainMenu />;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<KidsLearningGame />);
+    </script>
+</body>
+</html>
